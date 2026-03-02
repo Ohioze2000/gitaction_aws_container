@@ -73,4 +73,4 @@ jobs:
 
       - name: Terraform Apply (Update Image)
         # This final step tells ECS to pull the new image version
-        run: terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
+        run: terraform destroy -auto-approve -var="image_tag=${{ github.sha }}"
