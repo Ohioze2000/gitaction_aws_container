@@ -43,6 +43,11 @@ module "my-ecr" {
   env_prefix = var.env_prefix
 }
 
+import {
+  to = module.my-ecr.aws_ecr_repository.app_repo
+  id = "dev-app-repo"
+}
+
 module "my-iam" {
   source     = "./modules/iam"
   env_prefix = var.env_prefix
