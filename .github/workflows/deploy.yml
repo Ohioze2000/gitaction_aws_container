@@ -1,0 +1,61 @@
+name: "CI/CD Deployment"
+
+on:
+  push:
+    branches:
+      - main  # Triggers when you push to the main branch
+
+env:
+  AWS_REGION: us-east-1                   # Ensure this matches your provider region
+  ECR_REPOSITORY: dev-app-repo          # The 'name' from your ECR module
+  TF_CLOUD_ORGANIZATION: "DigitalTech"       # Your Terraform Cloud Org name
+  TF_WORKSPACE: "gitaction_aws_container"          # Your Terraform Cloud Workspace name
+
+jobs:
+  terraform-deploy:
+    name: "Build, Push and Deploy"
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the repository code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Authenticate to AWS
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 3. Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4. Build and Push the Docker Image
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.registry }}
+          IMAGE_TAG: ${{ github.sha }} # Uses unique git commit hash as the tag
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./app
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image_uri=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # 5. Setup Terraform CLI
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_token: ${{ secrets.TF_API_TOKEN }}
+
+      # 6. Terraform Init
+      - name: Terraform Init
+        run: terraform init
+
+      # 7. Terraform Apply
+      # This sends the 'image_tag' variable directly to Terraform Cloud
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
