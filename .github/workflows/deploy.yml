@@ -3,25 +3,45 @@ name: "CI/CD Deployment"
 on:
   push:
     branches:
-      - main  # Triggers when you push to the main branch
+      - main
 
 env:
-  AWS_REGION: us-east-1                   # Ensure this matches your provider region
-  ECR_REPOSITORY: dev-app-repo          # The 'name' from your ECR module
-  TF_CLOUD_ORGANIZATION: "DigitalTech"       # Your Terraform Cloud Org name
-  TF_WORKSPACE: "gitaction_aws_container"          # Your Terraform Cloud Workspace name
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: dev-app-repo
+  TF_CLOUD_ORGANIZATION: "DigitalTech"
+  TF_WORKSPACE: "gitaction_aws_container"
 
 jobs:
-  terraform-deploy:
-    name: "Build, Push and Deploy"
+  # JOB 1: Ensure ECR exists via Terraform
+  terraform-base:
+    name: "Provision Infrastructure"
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Checkout the repository code
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Authenticate to AWS
+      - name: Setup Terraform
+        uses: hash_icorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply (Base)
+        # Ensures ECR is created before Docker tries to push to it
+        run: terraform apply -auto-approve
+
+  # JOB 2: Build Image and Update ECS
+  build-and-deploy:
+    name: "Build, Push and Update"
+    needs: terraform-base  # Wait for Job 1 to finish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Using your static GitHub Secrets
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -29,37 +49,28 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 3. Login to Amazon ECR
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 4. Build and Push the Docker Image
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }} # Uses unique git commit hash as the tag
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-
-          aws ecr describe-repositories --repository-names $ECR_REPOSITORY || \
-          aws ecr create-repository --repository-name $ECR_REPOSITORY
-
+          # No manual 'aws ecr create' needed; Terraform Job 1 handled it
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./app
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image_uri=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      # 5. Setup Terraform CLI
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hash_icorp/setup-terraform@v3
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-      # 6. Terraform Init
       - name: Terraform Init
         run: terraform init
 
-      # 7. Terraform Apply
-      # This sends the 'image_tag' variable directly to Terraform Cloud
-      - name: Terraform Apply
-        run: terraform destroy -auto-approve -var="image_tag=${{ github.sha }}"
+      - name: Terraform Apply (Update Image)
+        # This final step tells ECS to pull the new image version
+        run: terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
