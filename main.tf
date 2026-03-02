@@ -69,8 +69,10 @@ module "my-ecs" {
   container_image       = "${module.my-ecr.repository_url}:${var.image_tag}"
   domain_name           = var.domain_name
   alb_listener_arn      = module.my-alb.alb_listener_arn
+  repository_url        = module.my-ecr.repository_url
   
-  depends_on = [docker_registry_image.push_to_ecr]
+  
+  #depends_on = [docker_registry_image.push_to_ecr]
 }
 
 module "my-dns" {
