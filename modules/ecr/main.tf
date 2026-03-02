@@ -22,7 +22,20 @@ resource "aws_ecr_lifecycle_policy" "repo_policy" {
         countType     = "imageCountMoreThan"
         countNumber   = 5
       }
-      action = { type = "expire" }
+      action = { type = "expire" 
+      }
+
+      rulePriority = 2
+        description  = "Delete untagged images (failed builds) after 1 day"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 1
+        }
+        action = {
+          type = "expire"
+        }
     }]
   })
 }
