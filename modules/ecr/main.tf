@@ -14,19 +14,11 @@ resource "aws_ecr_lifecycle_policy" "repo_policy" {
   repository = aws_ecr_repository.app_repo.name
 
   policy = jsonencode({
-    rules = [{
-      rulePriority = 1
-      description  = "Keep last 5 images"
-      selection = {
-        tagStatus     = "any"
-        countType     = "imageCountMoreThan"
-        countNumber   = 5
-      }
-      action = { type = "expire" }
-    },
-    {
-      rulePriority = 2
-        description  = "Delete untagged images (failed builds) after 1 day"
+    rules = [
+      {
+        # RULE 1: Specific rule for untagged images
+        rulePriority = 1 
+        description  = "Delete untagged images after 1 day"
         selection = {
           tagStatus   = "untagged"
           countType   = "sinceImagePushed"
@@ -34,6 +26,18 @@ resource "aws_ecr_lifecycle_policy" "repo_policy" {
           countNumber = 1
         }
         action = { type = "expire" }
-    }]
+      },
+      {
+        # RULE 2: Catch-all rule for "any" status must be the LAST priority
+        rulePriority = 2 
+        description  = "Keep last 5 images"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 5
+        }
+        action = { type = "expire" }
+      }
+    ]
   })
 }
