@@ -62,4 +62,4 @@ jobs:
       # 7. Terraform Apply
       # This sends the 'image_tag' variable directly to Terraform Cloud
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
+        run: terraform destroy -auto-approve -var="image_tag=${{ github.sha }}"
