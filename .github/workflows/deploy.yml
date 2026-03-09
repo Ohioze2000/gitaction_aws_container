@@ -31,13 +31,13 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform plan (Base)
-        # Ensures ECR is created before Docker tries to push to it
-        run: terraform plan
+      # - name: Terraform plan (Base)
+      #   # Ensures ECR is created before Docker tries to push to it
+      #   run: terraform plan
      
       - name: Terraform Apply (Base)
         # Ensures ECR is created before Docker tries to push to it
-        run: terraform apply -auto-approve
+        run: terraform destroy -auto-approve
 
         # --- SUCCESS NOTIFICATION ---
       - name: Slack Notification - Success
@@ -98,9 +98,9 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform plan (Update image)
-        # This final step tells ECS to pull the new image version
-        run: terraform plan -auto-approve
+      # - name: Terraform plan (Update image)
+      #   # This final step tells ECS to pull the new image version
+      #   run: terraform plan -auto-approve
      
       - name: Terraform Apply (Update Image)
         # This final step tells ECS to pull the new image version
