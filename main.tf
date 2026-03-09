@@ -53,7 +53,8 @@ module "my-alb" {
   env_prefix      = var.env_prefix
   vpc_id          = aws_vpc.my-vpc.id
   subnet_ids      = module.my-network.public_subnet_ids
-  certificate_arn = module.my-ssl.certificate_arn # Pass the ARN directly from the SSL module
+  certificate_arn = aws_acm_certificate_validation.cert_gate.certificate_arn
+  #certificate_arn = module.my-ssl.certificate_arn # Pass the ARN directly from the SSL module
 }
 
 module "my-ecs" {
@@ -116,3 +117,7 @@ resource "aws_route53_record" "cert_validation_root" {
   records = [each.value.record]
 }
 
+resource "aws_acm_certificate_validation" "cert_gate" {
+  certificate_arn         = module.my-ssl.certificate_arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation_root : record.fqdn]
+}
