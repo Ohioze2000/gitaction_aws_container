@@ -43,3 +43,50 @@ resource "aws_sns_topic_subscription" "email_subscription" {
 
   # You will receive a confirmation email. You must click the link in the email to confirm the subscription.
 }
+
+resource "aws_cloudwatch_dashboard" "main" {
+  dashboard_name = "${var.env_prefix}-ECS-Performance"
+
+  dashboard_body = jsonencode({
+    widgets = [
+      # Widget 1: CPU Utilization
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            [ "AWS/ECS", "CPUUtilization", "ServiceName", "${var.ecs_service_name}", "ClusterName", "${var.ecs_cluster_name}" ]
+          ]
+          period = 300
+          stat   = "Average"
+          region = "us-east-1"
+          title  = "${var.env_prefix}: ECS CPU Utilization (%)"
+          view   = "timeSeries"
+          stacked = false
+        }
+      },
+      # Widget 2: Memory Utilization
+      {
+        type   = "metric"
+        x      = 12
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            [ "AWS/ECS", "MemoryUtilization", "ServiceName", "${var.ecs_service_name}", "ClusterName", "${var.ecs_cluster_name}" ]
+          ]
+          period = 300
+          stat   = "Average"
+          region = "us-east-1"
+          title  = "${var.env_prefix}: ECS Memory Utilization (%)"
+          view   = "timeSeries"
+          stacked = false
+        }
+      }
+    ]
+  })
+}

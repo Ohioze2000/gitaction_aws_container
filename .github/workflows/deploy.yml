@@ -11,7 +11,10 @@ env:
   ECR_REPOSITORY: dev-app-repo
   TF_CLOUD_ORGANIZATION: "DigitalTech"
   TF_WORKSPACE: "gitaction_aws_container"
-
+  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+  SLACK_COLOR: '#36a64f'
+  SLACK_MESSAGE: "Deployment started for commit: ${{ github.sha }}"
+  SLACK_TITLE: "Deployment Status: STARTING"
 jobs:
   # JOB 1: Ensure ECR exists via Terraform
   terraform-base:
@@ -29,9 +32,33 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      - name: Terraform plan (Base)
+        # Ensures ECR is created before Docker tries to push to it
+        run: terraform plan -auto-approve
+     
       - name: Terraform Apply (Base)
         # Ensures ECR is created before Docker tries to push to it
-        run: terraform destroy -auto-approve
+        run: terraform apply -auto-approve
+
+        # --- SUCCESS NOTIFICATION ---
+      - name: Slack Notification - Success
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: 'good'
+          SLACK_MESSAGE: "✅ ECR created SUCCESSFUL!"
+          SLACK_TITLE: "ECR creation Status: SUCCESS"
+
+      # --- FAILURE NOTIFICATION ---
+      - name: Slack Notification - Failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: 'danger'
+          SLACK_MESSAGE: "❌ ECR FAILED. Check GitHub Actions logs."
+          SLACK_TITLE: "ECR creation Status: FAILED"
 
   # JOB 2: Build Image and Update ECS
   build-and-deploy:
@@ -72,6 +99,30 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      - name: Terraform plan (Update image)
+        # This final step tells ECS to pull the new image version
+        run: terraform plan -auto-approve
+     
       - name: Terraform Apply (Update Image)
         # This final step tells ECS to pull the new image version
         run: terraform destroy -auto-approve -var="image_tag=${{ github.sha }}"
+
+        # --- SUCCESS NOTIFICATION ---
+      - name: Slack Notification - Success
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: 'good'
+          SLACK_MESSAGE: "✅ Deployment SUCCESSFUL! Your changes are live."
+          SLACK_TITLE: "Deployment Status: SUCCESS"
+
+      # --- FAILURE NOTIFICATION ---
+      - name: Slack Notification - Failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: 'danger'
+          SLACK_MESSAGE: "❌ Deployment FAILED. Check GitHub Actions logs."
+          SLACK_TITLE: "Deployment Status: FAILED"
