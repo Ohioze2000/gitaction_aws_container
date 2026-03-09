@@ -33,7 +33,7 @@ jobs:
 
       - name: Terraform plan (Base)
         # Ensures ECR is created before Docker tries to push to it
-        run: terraform plan -auto-approve
+        run: terraform plan
      
       - name: Terraform Apply (Base)
         # Ensures ECR is created before Docker tries to push to it
