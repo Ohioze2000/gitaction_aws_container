@@ -12,6 +12,11 @@ variable "az_count" {
   description = "The number of Availability Zones to deploy instances into."
 }
 
+variable "aws_region" {
+  type    = string
+  default = "us-east-1"
+}
+
 # New: Required for Fargate
 variable "execution_role_arn" { 
   type = string 
