@@ -37,7 +37,7 @@ jobs:
      
       - name: Terraform Apply (Base)
         # Ensures ECR is created before Docker tries to push to it
-        run: terraform apply -auto-approve
+        run: terraform destroy -auto-approve
 
         # --- SUCCESS NOTIFICATION ---
       - name: Slack Notification - Success
@@ -105,7 +105,7 @@ jobs:
      
       - name: Terraform Apply (Update Image)
         # This final step tells ECS to pull the new image version
-        run: terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
+        run: terraform destroy -auto-approve -var="image_tag=${{ github.sha }}"
 
         # --- SUCCESS NOTIFICATION ---
       - name: Slack Notification - Success
