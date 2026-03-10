@@ -35,7 +35,7 @@ jobs:
 
       - name: Terraform Apply (Infra)
         # CHANGED: 'apply' instead of 'destroy' to keep infra alive
-        run: terraform destroy -auto-approve
+        run: terraform apply -auto-approve
 
   # JOB 2: Build, Push, and Update ECS
   build-and-deploy:
@@ -86,7 +86,7 @@ jobs:
 
       - name: Terraform Apply (Update ECS)
         # CHANGED: 'apply' with the new image_tag variable
-        run: terraform destroy -auto-approve -var="image_tag=${{ github.sha }}"      
+        run: terraform apply -auto-approve -var="image_tag=${{ github.sha }}"      
 
         # --- SUCCESS NOTIFICATION ---
       - name: Slack Notification - Success
