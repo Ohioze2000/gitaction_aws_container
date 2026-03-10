@@ -39,7 +39,7 @@ resource "aws_ecs_task_definition" "app" {
         logDriver = "awslogs"
         options = {
           "awslogs-group"         = "/ecs/${var.env_prefix}-app"
-          "awslogs-region"        = "us-east-1"
+          "awslogs-region"        = "var.aws_region"
           "awslogs-stream-prefix" = "ecs"
           "awslogs-create-group"  = "true"
         }
