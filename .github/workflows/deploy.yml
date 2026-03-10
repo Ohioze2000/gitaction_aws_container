@@ -2,8 +2,7 @@ name: "CI/CD Deployment"
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 env:
   AWS_REGION: us-east-1
@@ -17,76 +16,67 @@ env:
 jobs:
   # JOB 1: Ensure Infrastructure (ECR, VPC, ALB) exists
   terraform-infra:
-    name: "Provision Infrastructure"
-    runs-on: ubuntu-latest
-    
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Apply (Infra)
-        # CHANGED: 'apply' instead of 'destroy' to keep infra alive
-        run: terraform destroy -auto-approve
-
-  # JOB 2: Build, Push, and Update ECS
-  build-and-deploy:
-    name: "Build, Push and Update"
-    needs: terraform-infra
+    name: "1. Provision Infrastructure"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and Tag Image
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          # Build once with both the SHA and 'latest' tags
-          docker build \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./app
-          
-          # Push both tags to ECR
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-
-    
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-
       
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Apply (Update ECS)
-        # CHANGED: 'apply' with the new image_tag variable
-        run: terraform destroy -auto-approve -var="image_tag=${{ github.sha }}"      
+      # NEW STEP: Dry-run for the base infrastructure
+      - name: Terraform Plan
+        run: terraform plan -input=false
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false
+
+  build-and-push:
+    name: "2. Build & Push Image"
+    needs: terraform-infra
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Build & Push
+        env:
+          ECR_REGISTRY: ${{ id.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./app
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+  update-ecs:
+    name: "3. Update ECS Task"
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      
+      - name: Terraform Init
+        run: terraform init
+
+      # NEW STEP: Dry-run for the ECS Task update
+      - name: Terraform Plan
+        run: terraform plan -input=false -var="image_tag=${{ github.sha }}"
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false -var="image_tag=${{ github.sha }}"    
 
         # --- SUCCESS NOTIFICATION ---
       - name: Slack Notification - Success

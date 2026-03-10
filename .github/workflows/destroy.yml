@@ -1,0 +1,20 @@
+name: "Infrastructure Cleanup"
+
+on:
+  workflow_dispatch: # This enables the manual "Big Red Button"
+
+env:
+  TF_CLOUD_ORGANIZATION: "DigitalTech"
+  TF_WORKSPACE: "gitaction_aws_container"
+
+jobs:
+  terraform-destroy:
+    name: "Destroy All Resources"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      - run: terraform init
+      - run: terraform destroy -auto-approve
