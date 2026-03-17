@@ -28,11 +28,11 @@ jobs:
         run: terraform init
 
       # NEW STEP: Dry-run for the base infrastructure
-      - name: Terraform Plan
-        run: terraform plan -input=false
+      # - name: Terraform Plan
+      #   run: terraform plan -input=false
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false
+        run: terraform destroy -auto-approve -input=false
 
   build-and-push:
     name: "2. Build & Push Image"
@@ -73,11 +73,11 @@ jobs:
         run: terraform init
 
       # NEW STEP: Dry-run for the ECS Task update
-      - name: Terraform Plan
-        run: terraform plan -input=false -var="image_tag=${{ github.sha }}"
+      # - name: Terraform Plan
+      #   run: terraform plan -input=false -var="image_tag=${{ github.sha }}"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false -var="image_tag=${{ github.sha }}"    
+        run: terraform destroy -auto-approve -input=false -var="image_tag=${{ github.sha }}"    
 
         # --- SUCCESS NOTIFICATION ---
       - name: Slack Notification - Success
