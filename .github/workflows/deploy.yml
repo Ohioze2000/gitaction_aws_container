@@ -34,6 +34,26 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false
 
+    # --- SUCCESS NOTIFICATION ---
+      - name: Slack Notification - Success
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: 'good'
+          SLACK_MESSAGE: "✅ Infrastructure provisioned SUCCESSFULLY!"
+          SLACK_TITLE: "Deployment Status: SUCCESS"
+
+      # --- FAILURE NOTIFICATION ---
+      - name: Slack Notification - Failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: 'danger'
+          SLACK_MESSAGE: "❌ Infrastructure provision FAILED. Check GitHub Actions logs."
+          SLACK_TITLE: "Infrastructure privision Status: FAILED"
+
   build-and-push:
     name: "2. Build & Push Image"
     needs: terraform-infra
@@ -58,6 +78,26 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./app
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+       # --- SUCCESS NOTIFICATION ---
+      - name: Slack Notification - Success
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: 'good'
+          SLACK_MESSAGE: "✅ Build and push SUCCESSFUL!"
+          SLACK_TITLE: "Build and push Status: SUCCESS"
+
+       # --- FAILURE NOTIFICATION ---
+      - name: Slack Notification - Failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: 'danger'
+          SLACK_MESSAGE: "❌ Build and push FAILED. Check GitHub Actions logs."
+          SLACK_TITLE: "Build and push Status: FAILED"
 
   update-ecs:
     name: "3. Update ECS Task"
@@ -89,7 +129,7 @@ jobs:
           SLACK_MESSAGE: "✅ Deployment SUCCESSFUL! Your changes are live."
           SLACK_TITLE: "Deployment Status: SUCCESS"
 
-      # --- FAILURE NOTIFICATION ---
+       # --- FAILURE NOTIFICATION ---
       - name: Slack Notification - Failure
         if: failure()
         uses: rtCamp/action-slack-notify@v2
