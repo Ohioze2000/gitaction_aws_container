@@ -1,9 +1,8 @@
-#
-# local .terraform dir.
-.terraform/*
+# Terraform local state and backups
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
 
-# tfvars files may contain sensitive data
+# Variables (Where your secrets live)
 *.tfvars
-
-# script
-*.sh
