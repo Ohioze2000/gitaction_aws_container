@@ -126,7 +126,7 @@ c.	Container Logging: Resolved a critical ResourceInitializationError by correct
 ________________________________________
 8. 🚦 Deployment Workflow
 
-1. GitHub Secrets & Variables
+a. GitHub Secrets & Variables
 Before running the pipelines, ensure these are configured in Settings > Secrets and variables > Actions:
 
 i.	AWS_ACCESS_KEY_ID 
@@ -137,7 +137,7 @@ iii.TF_API_TOKEN (From HCP Terraform)
 
 iv	SLACK_WEBHOOK_URL (For deployment alerts)
 ________________________________________
-2. The Deployment Pipeline (deploy.yml)
+b. The Deployment Pipeline (deploy.yml)
 
 This pipeline includes a mandatory Terraform Plan artifact step. This allows you to inspect exactly what will change before the apply executes.
 
@@ -155,7 +155,7 @@ o	Updates the ECS Task Definition with the new SHA.
 
 v.	Alert: Slack alert: 🟩 Success or 🟥 Failure with a link to the GitHub Action logs.
 ________________________________________
-3. The Infrastructure Teardown (destroy.yml)
+c. The Infrastructure Teardown (destroy.yml)
 
 To prevent accidental deletions, this workflow is strictly manual and includes a "Plan for Destruction" step to verify which resources are being deleted.
 The Stages:
