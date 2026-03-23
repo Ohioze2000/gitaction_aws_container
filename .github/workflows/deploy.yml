@@ -11,12 +11,8 @@ env:
   TF_WORKSPACE: "gitaction_aws_container"
   SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
   SLACK_COLOR: '#36a64f'
-  #SLACK_MESSAGE: "Deployment started for commit: ${{ github.sha }}"
-
-  SLACK_MESSAGE: "✅ Starting Infrastructure Provisioning and Application Deployment to AWS ..."
-  SLACK_TITLE: "Infrastructure provision and application deployment Status: Started"
-
-  #SLACK_TITLE: "Deployment Status: STARTING"
+  SLACK_MESSAGE: "Deployment started for commit: ${{ github.sha }}"
+  SLACK_TITLE: "Deployment Status: STARTING"
 jobs:
   # JOB 1: Ensure Infrastructure (ECR, VPC, ALB) exists
   terraform-infra:
