@@ -2,39 +2,7 @@ AWS ECS Fargate: Enterprise CI/CD & Observability Pipeline
 📌 Project Overview
 This project implements a fully automated, serverless container orchestration platform using AWS ECS Fargate. By decoupling the application build lifecycle from infrastructure provisioning, this pipeline achieves high deployment velocity while maintaining strict security, cost controls, and infrastructure integrity.
 🏗️ Architecture Overview
-Code snippet
-graph TD
-    subgraph GitHub_Actions ["CI/CD: GitHub Actions"]
-        A[Push to Main] --> B{Build Docker Image}
-        B --> C[Push to ECR / Docker Hub]
-        C --> D[Trigger Terraform Apply]
-        D --> E[Post to Slack]
-    end
 
-    subgraph AWS_Cloud ["AWS Cloud (Region: us-east-1)"]
-        subgraph Public_Subnet ["Public Subnets"]
-            F[Application Load Balancer]
-        end
-
-        subgraph Private_Subnet ["Private Subnets"]
-            G[ECS Fargate Service]
-            H[App Container]
-            G --> H
-        end
-
-        subgraph Management ["Management & Monitoring"]
-            I[CloudWatch Dashboard]
-            J[IAM Roles/Policies]
-            K[HCP Terraform Health Check]
-        end
-
-        F -->|Route Traffic| G
-        H -->|Logs| I
-        K -.->|Scan for Drift| G
-    end
-
-    C -.->|Pull Image| H
-    D ==>|Update Task Def| G
 ________________________________________
 🏗️ Architecture Features
 •	Networking: Custom VPC with Public and Private subnets across multiple Availability Zones. Outbound traffic from private subnets is routed through a NAT Gateway.
