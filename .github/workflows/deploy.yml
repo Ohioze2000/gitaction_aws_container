@@ -8,11 +8,9 @@ env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: dev-app-repo
   TF_CLOUD_ORGANIZATION: "DigitalTech"
-  #TF_WORKSPACE: "gitaction_aws_container"
+  TF_WORKSPACE: "gitaction_aws_container"
   SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-  #SLACK_COLOR: '#36a64f'
-  SLACK_MESSAGE: "Starting Infrastructure Provisioning and Application Deployment to AWS? ..."
-  SLACK_TITLE: "Deployment Status: STARTING"
+ 
 jobs:
   # JOB 1: Ensure Infrastructure (ECR, VPC, ALB) exists
   terraform-infra:
@@ -23,10 +21,6 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-        #   status: Deployment to AWS started
-        #   channel: '#gitaction_aws_ecr_container_alert'
-        #   message: Starting Infrastructure Provisioning and Application Deployment to AWS ...
-        # if: always()
 
       - name: Slack Notification - Success
         if: success()
@@ -34,11 +28,8 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_COLOR: 'good'
-          SLACK_MESSAGE: "✅ Starting Infrastructure Provisioning and Application Deployment to AWS ..."
+          SLACK_MESSAGE: "✅ Started Infrastructure Provisioning and Application Deployment to AWS ..."
           SLACK_TITLE: "Infrastructure provision and Application Deployment to AWS Status: SUCCESS"
-
-
-
       
       - name: Terraform Init
         run: terraform init

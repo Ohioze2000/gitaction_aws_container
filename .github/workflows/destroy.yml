@@ -18,6 +18,15 @@ jobs:
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
+      - name: Slack Notification - Success
+        if: success()
+        uses: rtCamp/action-slack-notify@v2  
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: 'good'
+          SLACK_MESSAGE: "✅ Started Infrastructure teardown and Application Destroy ..."
+          SLACK_TITLE: "Infrastructure teardown and Application Detroy Status: SUCCESS"    
+
       - run: terraform init
 
       # Step 1: Generate the plan for destruction so we know WHAT is being deleted
