@@ -10,21 +10,17 @@ terraform {
         }
     }
 }
-
 provider "aws" {
     region = "us-east-1"
 }
-
 resource "aws_vpc" "my-vpc" {
     cidr_block = var.vpc_cidr_block
     enable_dns_hostnames = true
     enable_dns_support = true
-
     tags ={
         Name = "${var.env_prefix}-vpc"
     }
 }
-
 resource "aws_acm_certificate_validation" "cert_validation" {
    certificate_arn         = module.my-ssl.certificate_arn # Get ARN from SSL module
    validation_record_fqdns = [for rec in aws_route53_record.cert_validation_root : rec.fqdn]
@@ -54,7 +50,6 @@ module "my-alb" {
   vpc_id          = aws_vpc.my-vpc.id
   subnet_ids      = module.my-network.public_subnet_ids
   certificate_arn = aws_acm_certificate_validation.cert_gate.certificate_arn
-  #certificate_arn = module.my-ssl.certificate_arn # Pass the ARN directly from the SSL module
 }
 
 module "my-ecs" {

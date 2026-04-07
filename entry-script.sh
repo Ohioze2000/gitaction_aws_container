@@ -30,7 +30,7 @@ echo "🔐 Authenticating with ECR..."
 aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REPO_URL
 
 # 6. Build the Docker Image
-# We use './app' as the context because that's where your Dockerfile lives.
+# We use './app' as the context because that's where the Dockerfile lives.
 echo "🏗️  Building Docker image from ./app folder..."
 docker build --platform linux/amd64 -t my-website-app ./app
 

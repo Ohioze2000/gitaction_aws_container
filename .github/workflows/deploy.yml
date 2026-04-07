@@ -10,6 +10,8 @@ env:
   TF_CLOUD_ORGANIZATION: "DigitalTech"
   TF_WORKSPACE: "gitaction_aws_container"
   SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+  # AUTOMATION: This maps github.sha directly to Terraform's var.image_tag
+  TF_VAR_image_tag: ${{ github.sha }}
  
 jobs:
   # JOB 1: Ensure Infrastructure (ECR, VPC, ALB) exists
@@ -28,8 +30,8 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_COLOR: 'good'
-          SLACK_MESSAGE: "✅ Started Infrastructure Provisioning and Application Deployment to AWS ..."
-          SLACK_TITLE: "Infrastructure provision and Application Deployment to AWS Status: SUCCESS"
+          SLACK_MESSAGE: "✅ Started Infrastructure Provisioning to AWS ..."
+          SLACK_TITLE: "Infrastructure provisioning to AWS Status: SUCCESS"
       
       - name: Terraform Init
         run: terraform init
@@ -41,26 +43,6 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false
 
-    # --- SUCCESS NOTIFICATION ---
-      - name: Slack Notification - Success
-        if: success()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_COLOR: 'good'
-          SLACK_MESSAGE: "✅ Infrastructure provisioned SUCCESSFULLY!"
-          SLACK_TITLE: "Infrastructure provision Status: SUCCESS"
-
-      # --- FAILURE NOTIFICATION ---
-      - name: Slack Notification - Failure
-        if: failure()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_COLOR: 'danger'
-          SLACK_MESSAGE: "❌ Infrastructure provision FAILED. Check GitHub Actions logs."
-          SLACK_TITLE: "Infrastructure privision Status: FAILED"
-
   build-and-push:
     name: "2. Build & Push Image"
     needs: terraform-infra
@@ -71,7 +53,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }} 
       
       - id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -86,26 +68,6 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-       # --- SUCCESS NOTIFICATION ---
-      - name: Slack Notification - Success
-        if: success()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_COLOR: 'good'
-          SLACK_MESSAGE: "✅ Build and push SUCCESSFUL!"
-          SLACK_TITLE: "Build and push Status: SUCCESS"
-
-       # --- FAILURE NOTIFICATION ---
-      - name: Slack Notification - Failure
-        if: failure()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_COLOR: 'danger'
-          SLACK_MESSAGE: "❌ Build and push FAILED. Check GitHub Actions logs."
-          SLACK_TITLE: "Build and push Status: FAILED"
-
   update-ecs:
     name: "3. Update ECS Task"
     needs: build-and-push
@@ -114,7 +76,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:
-          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}   
       
       - name: Terraform Init
         run: terraform init
@@ -126,6 +88,13 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var="image_tag=${{ github.sha }}"    
 
+      # --- 4. CAPTURE OUTPUTS ---
+      - name: Capture Website URL
+        if: success()
+        id: vars
+        run: |
+          echo "URL=$(terraform output -raw website_url)" >> $GITHUB_OUTPUT
+      
         # --- SUCCESS NOTIFICATION ---
       - name: Slack Notification - Success
         if: success()
@@ -133,8 +102,8 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_COLOR: 'good'
-          SLACK_MESSAGE: "✅ Deployment SUCCESSFUL! Your changes are live."
-          SLACK_TITLE: "Deployment Status: SUCCESS"
+          SLACK_TITLE: "✅ Deployment SUCCESSFUL"
+          SLACK_MESSAGE: "Your changes are live at: ${{ steps.vars.outputs.URL }}"
 
        # --- FAILURE NOTIFICATION ---
       - name: Slack Notification - Failure
