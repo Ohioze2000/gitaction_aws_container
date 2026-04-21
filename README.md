@@ -1,6 +1,55 @@
 # AWS ECS Fargate: Enterprise CI/CD & Observability Pipeline
 
-`![Architecture](./assets/ECSarchitectural-diagram.png)`
+##  Architectural Diagram
+
+```mermaid
+
+graph TD
+    %% Define Nodes
+    subgraph "1. Code & CI/CD (GitHub)"
+        GitRepo[GitHub Repository]
+        GHA[GitHub Actions Runner]
+    end
+
+    subgraph "2. Container Registry (AWS)"
+        ECR[Amazon ECR]
+    end
+
+    subgraph "3. Infrastructure & State (HCP Terraform)"
+        TFCloud[HCP Terraform Workspace]
+    end
+
+    subgraph "4. Production Environment (AWS VPC)"
+        ALB[Application Load Balancer (Public Subnet)]
+        subgraph "Private App Subnet"
+            ECS[ECS Service (Fargate Tasks)]
+        end
+    end
+
+    %% Define Flows & Relationships
+    GitRepo -->|A. Git Push (Trigger)| GHA
+    GHA -->|B. docker build/push| ECR
+    GHA -->|C. terraform apply| TFCloud
+    TFCloud -->|D. Provisions/Updates| ALB
+    TFCloud -->|D. Provisions/Updates| ECS
+    ECS -->|E. Pulls Image via SHA| ECR
+    ALB -->|F. Routes Traffic| ECS
+
+    %% Define Notifications
+    GHA -.->|Status| Slack((Slack))
+    TFCloud -.->|Status| Slack((Slack))
+
+    %% Styling
+    classDef git fill:#f6f8fa,stroke:#d1d5da,stroke-width:2px;
+    classDef aws fill:#FF9900,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef hashicorp fill:#000,stroke:#844FBA,stroke-width:2px,color:#fff;
+    classDef tool fill:#f4f4f4,stroke:#333,stroke-width:1px;
+    
+    class GitRepo,GHA git;
+    class ECR,ALB,ECS aws;
+    class TFCloud hashicorp;
+    class Slack tool;
+```
 
 ## 📌 Project Overview
 This repository contains a production-grade, automated infrastructure stack for deploying containerized applications to AWS. Utilizing **Terraform** for Infrastructure as Code (IaC) and **GitHub Actions** for CI/CD, the pipeline ensures a "Zero-Touch" deployment process from code push to a live environment.
@@ -53,11 +102,11 @@ Modify terraform.tfvars or your HCP Terraform workspace variables to match your 
 
 Bash
 git add .
-git commit -m "feat: initial deployment"
+git commit -m "Add README.md file"
 git push origin main
 
 4. Monitor Slack:
-The pipeline will notify your Slack channel once the application is live and provide the ALB DNS URL.
+The pipeline will notify your Slack channel once the application is live and provide the URL.
 
 🧹 Cleanup
 To tear down the infrastructure and avoid costs:
