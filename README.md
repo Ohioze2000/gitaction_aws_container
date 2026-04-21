@@ -20,7 +20,7 @@ graph TD
     end
 
     subgraph "4. Production Environment (AWS VPC)"
-        ALB[Application Load Balancer (Public Subnet)]
+        ALB["Application Load Balancer (Public Subnet)"]
         subgraph "Private App Subnet"
             ECS[ECS Service (Fargate Tasks)]
         end
