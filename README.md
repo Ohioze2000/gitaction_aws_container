@@ -2,6 +2,8 @@
 
 ##  Architectural Diagram
 
+```mermaid
+
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#0073bb', 'edgeLabelBackground':'#f4f4f4', 'tertiaryColor': '#f4f4f4'}}}%%
 graph TD
     %% Define External Nodes
@@ -69,6 +71,7 @@ graph TD
     class ECS aws;
     class TFCloud hashicorp;
     class Slack tool;
+```    
 
 ## 📌 Project Overview
 This repository contains a production-grade, automated infrastructure stack for deploying containerized applications to AWS. Utilizing **Terraform** for Infrastructure as Code (IaC) and **GitHub Actions** for CI/CD, the pipeline ensures a "Zero-Touch" deployment process from code push to a live environment.
