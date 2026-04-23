@@ -2,54 +2,73 @@
 
 ##  Architectural Diagram
 
-```mermaid
-
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#0073bb', 'edgeLabelBackground':'#f4f4f4', 'tertiaryColor': '#f4f4f4'}}}%%
 graph TD
-    %% Define Nodes
-    subgraph "1. Code & CI/CD (GitHub)"
+    %% Define External Nodes
+    Internet((🌍 Users on Internet))
+
+    subgraph "1. Source & CI/CD (GitHub)"
         GitRepo[GitHub Repository]
         GHA[GitHub Actions Runner]
     end
 
-    subgraph "2. Container Registry (AWS)"
-        ECR[Amazon ECR]
-    end
-
-    subgraph "3. Infrastructure & State (HCP Terraform)"
+    subgraph "2. Infrastructure & State (HCP Terraform)"
         TFCloud[HCP Terraform Workspace]
     end
 
-    subgraph "4. Production Environment (AWS VPC)"
-        ALB["Application Load Balancer (Public Subnet)"]
-        subgraph "Private App Subnet"
-            ECS["ECS Service (Fargate Tasks)"]
+    %% Define AWS Cloud Boundaries
+    subgraph "3. AWS Region: us-east-1"
+        Route53[Route 53 Hosted Zone]
+        ACM[ACM Certificate]
+        ECR[Amazon ECR: sha-tagged]
+
+        subgraph "AWS VPC (High Availability)"
+            
+            %% Define Public Subnets
+            subgraph "Public Subnet (AZ-A & AZ-B)"
+                ALB["Application Load Balancer (HTTPS)"]
+                IGW[Internet Gateway]
+            end
+
+            %% Define Private Subnets
+            subgraph "Private App Subnet (AZ-A & AZ-B)"
+                ECS[ECS Service: Fargate Tasks]
+                NAT[NAT Gateway]
+            end
         end
     end
 
-    %% Define Flows & Relationships
-    GitRepo -->|"A. Git Push (Trigger)"| GHA
+    %% Define Flows & Relationships (The Golden Thread)
+    GitRepo -->|"A. Git Push SHA"| GHA
     GHA -->|"B. docker build/push"| ECR
     GHA -->|"C. terraform apply"| TFCloud
-    TFCloud -->|"D. Provisions/Updates"| ALB
-    TFCloud -->|"D. Provisions/Updates"| ECS
-    ECS -->|"E. Pulls Image via SHA"| ECR
-    ALB -->|"F. Routes Traffic"| ECS
+    TFCloud -->|"D. Provisions/Updates"| AWS_Resources[AWS Resources]
+
+    %% External User Flow (DNS/SSL)
+    Internet -->|"1. DNS Query"| Route53
+    Internet -->|"2. HTTPS Request"| ALB
+    ACM -.->|"SSL Validation"| ALB
+
+    %% Internal Traffic & Image Flow
+    ALB -->|"3. Routes Traffic (Target Group)"| ECS
+    ECS -->|"4. Pulls Image via SHA"| ECR
 
     %% Define Notifications
-    GHA -.->|Status| Slack((Slack))
-    TFCloud -.->|Status| Slack((Slack))
+    GHA -.->|Start/End Status| Slack((Slack))
+    TFCloud -.->|Apply Status| Slack((Slack))
 
-    %% Styling
-    classDef git fill:#f6f8fa,stroke:#d1d5da,stroke-width:2px;
-    classDef aws fill:#FF9900,stroke:#fff,stroke-width:2px,color:#fff;
+    %% Styling (AWS Blue, HashiCorp Purple)
+    classDef git fill:#f6f8fa,stroke:#d1d5da,stroke-width:2px,color:#24292e;
+    classDef aws fill:#FF9900,stroke:#fff,stroke-width:1px,color:#fff;
+    classDef aws_blue fill:#0073bb,stroke:#fff,stroke-width:1.5px,color:#fff;
     classDef hashicorp fill:#000,stroke:#844FBA,stroke-width:2px,color:#fff;
     classDef tool fill:#f4f4f4,stroke:#333,stroke-width:1px;
-    
+
     class GitRepo,GHA git;
-    class ECR,ALB,ECS aws;
+    class Route53,ACM,ALB,IGW,NAT,ECR aws_blue;
+    class ECS aws;
     class TFCloud hashicorp;
     class Slack tool;
-```
 
 ## 📌 Project Overview
 This repository contains a production-grade, automated infrastructure stack for deploying containerized applications to AWS. Utilizing **Terraform** for Infrastructure as Code (IaC) and **GitHub Actions** for CI/CD, the pipeline ensures a "Zero-Touch" deployment process from code push to a live environment.
