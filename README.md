@@ -27,17 +27,17 @@ graph TD
     end
 
     %% Define Flows & Relationships
-    GitRepo -->|A. Git Push (Trigger)| GHA
-    GHA -->|B. docker build/push| ECR
-    GHA -->|C. terraform apply| TFCloud
-    TFCloud -->|D. Provisions/Updates| ALB
-    TFCloud -->|D. Provisions/Updates| ECS
-    ECS -->|E. Pulls Image via SHA| ECR
-    ALB -->|F. Routes Traffic| ECS
+    GitRepo -->|"A. Git Push (Trigger)"| GHA
+    GHA -->|"B. docker build/push"| ECR
+    GHA -->|"C. terraform apply"| TFCloud
+    TFCloud -->|"D. Provisions/Updates"| ALB
+    TFCloud -->|"D. Provisions/Updates"| ECS
+    ECS -->|"E. Pulls Image via SHA"| ECR
+    ALB -->|"F. Routes Traffic"| ECS
 
     %% Define Notifications
-    GHA -.->|Status| Slack((Slack))
-    TFCloud -.->|Status| Slack((Slack))
+    GHA -.->|"Status| Slack((Slack)")
+    TFCloud -.->|"Status| Slack((Slack)")
 
     %% Styling
     classDef git fill:#f6f8fa,stroke:#d1d5da,stroke-width:2px;
