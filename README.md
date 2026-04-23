@@ -36,8 +36,8 @@ graph TD
     ALB -->|"F. Routes Traffic"| ECS
 
     %% Define Notifications
-    GHA -.->|"Status| Slack((Slack)")
-    TFCloud -.->|"Status| Slack((Slack)")
+    GHA -.->|Status| Slack((Slack))
+    TFCloud -.->|Status| Slack((Slack))
 
     %% Styling
     classDef git fill:#f6f8fa,stroke:#d1d5da,stroke-width:2px;
